@@ -12,7 +12,7 @@ Latest version is GARPOS v1.0.0 (Apr. 14. 2022)
 
 ### for methodology
 
-Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Title, EarthArXiv. (https://doi.org/ppp/sss).
+Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. (preprint will be available soon).
 
 ### for code
 Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2022). GARPOS-MCMC (Version 1.0.0). Zenodo. (DOI will be available soon)
@@ -31,7 +31,7 @@ Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2022). GAR
 
 ## Algorithm and documentation
 
-Please see Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Title, EarthArXiv. (https://doi.org/ppp/sss).
+Please see Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. (preprint will be available soon).
 
 ### Models for perturbation field
 
@@ -126,6 +126,7 @@ Please be aware of your memory because it stores all MCMC samples for test.
 + GARPOS_mcmc_v1.0.0.py
   + init_position (in setup_model.py)
   + make_knots (in setup_model.py)
+  + derivative2 (in setup_model.py)
   + setup_hparam (in setup_model.py)
   + atd2enu (in forward.py)
     + corr_attitude (in coordinate_trans.py)
@@ -138,7 +139,6 @@ Please be aware of your memory because it stores all MCMC samples for test.
   + calc_traveltime (in traveltime.py)
   + E_matrix (in eachstep.py)
   + H_matrix (in func_*.py)
-    + derivative2 (in eachstep.py)
   + log_likelihood (in eachstep.py)
   + sampling_a (in eachstep.py)
   + a_to_mp (in func_*.py)
