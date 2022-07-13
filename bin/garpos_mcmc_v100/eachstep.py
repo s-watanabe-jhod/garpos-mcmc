@@ -4,7 +4,6 @@ Created:
 Contains:
 	hparam_to_real
 	E_matrix
-	derivative2
 	log_likelihood
 	sampling_a
 """
@@ -103,50 +102,6 @@ def E_matrix(mu_t, mu_m, ndata, mat_dt, diff_mt, same_mt, mat_tt0, fpower, rr):
 	E_factor = cholesky(E0, ordering_method="natural")
 	
 	return E_factor, E0
-
-
-def derivative2(p, knot):
-	"""
-	Calculate the matrix for 2nd derivative of the B-spline basis
-	for a certain component in "gamma" model.
-	
-	Parameters
-	----------
-	p : int
-		spline degree (=3).
-	knot : ndarray
-		B-spline knot vector for a target component.
-	
-	Returns
-	-------
-	dk : ndarray
-		2nd derivative matrix of the B-spline basis.
-	"""
-	
-	# smoothing constraints
-	nn = len(knot)-p-1
-	delta =  lil_matrix( (nn-2, nn) )
-	w = lil_matrix( (nn-2, nn-2) )
-	
-	for j in range(nn-2):
-		dkn0 = (knot[j+p+1] - knot[j+p  ])/3600.
-		dkn1 = (knot[j+p+2] - knot[j+p+1])/3600.
-		
-		delta[j,j]   =  1./dkn0
-		delta[j,j+1] = -1./dkn0 -1./dkn1
-		delta[j,j+2] =  1./dkn1
-		
-		if j >= 1:
-			w[j,j-1] = dkn0 / 6.
-			w[j-1,j] = dkn0 / 6.
-		w[j,j] = (dkn0 + dkn1) / 3.
-	
-	delta = delta.tocsr()
-	w = w.tocsr()
-	
-	dk = (delta.T @ w) @ delta
-	
-	return dk
 
 
 def log_likelihood(sigma, ndata, jcb, E_factor, H, rankH, loglikeH, y):

@@ -4,6 +4,7 @@ Created:
 Contains:
 	init_position
 	make_knots
+	derivative2
 	data_var_base
 	setup_hparam
 """
@@ -126,6 +127,50 @@ def make_knots(shotdat, spdeg, knotintervals):
 		knots[k] = np.append(knots[k], addknf)
 
 	return knots
+
+
+def derivative2(p, knot):
+	"""
+	Calculate the matrix for 2nd derivative of the B-spline basis
+	for a certain component in "gamma" model.
+	
+	Parameters
+	----------
+	p : int
+		spline degree (=3).
+	knot : ndarray
+		B-spline knot vector for a target component.
+	
+	Returns
+	-------
+	dk : ndarray
+		2nd derivative matrix of the B-spline basis.
+	"""
+	
+	# smoothing constraints
+	nn = len(knot)-p-1
+	delta =  lil_matrix( (nn-2, nn) )
+	w = lil_matrix( (nn-2, nn-2) )
+	
+	for j in range(nn-2):
+		dkn0 = (knot[j+p+1] - knot[j+p  ])/3600.
+		dkn1 = (knot[j+p+2] - knot[j+p+1])/3600.
+		
+		delta[j,j]   =  1./dkn0
+		delta[j,j+1] = -1./dkn0 -1./dkn1
+		delta[j,j+2] =  1./dkn1
+		
+		if j >= 1:
+			w[j,j-1] = dkn0 / 6.
+			w[j-1,j] = dkn0 / 6.
+		w[j,j] = (dkn0 + dkn1) / 3.
+	
+	delta = delta.tocsr()
+	w = w.tocsr()
+	
+	dk = (delta.T @ w) @ delta
+	
+	return dk
 
 
 def data_var_base(shotdat, T0, dt_thr):

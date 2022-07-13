@@ -11,7 +11,6 @@ import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix
 
 # GARPOS module
-from .eachstep import derivative2
 from .forward import calc_gamma
 
 
@@ -79,7 +78,7 @@ def jacobian(nmppos, shots, spdeg, knots):
 	return slvidx, imp0, jcb0, jcb2
 
 
-def H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, knots):
+def H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, H0, rankH0):
 	"""
 	Set the smoothness constraint matrix H.
 	
@@ -91,8 +90,10 @@ def H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, knots):
 		Indices where the type of model parameters change.
 	spdeg : int
 		spline degree (=3).
-	knots : list of ndarray (len=5)
-		B-spline knots for each component in "gamma".
+	H0 : csr_matrix
+		2nd derivative matrix of the B-spline basis.
+	rankH0 : int
+		rank of dk
 	
 	Returns
 	-------
@@ -108,17 +109,7 @@ def H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, knots):
 	diff = lil_matrix( (imp0[len(lambdas)], imp0[len(lambdas)]) )
 	
 	for k, lamb in enumerate(lambdas):
-		
-		knot = knots[k]
-		if len(knot) == 0:
-			continue
-		dk = derivative2(spdeg, knot)
-		diff[imp0[k]:imp0[k+1], imp0[k]:imp0[k+1]] = dk / lamb
-	
-	H0 = diff[imp0[0]:imp0[1],imp0[0]:imp0[1]]
-	
-	rankThr = 1.e-9
-	rankH0 = np.linalg.matrix_rank(H0.toarray(), tol=rankThr)
+		diff[imp0[k]:imp0[k+1], imp0[k]:imp0[k+1]] = H0 / lamb
 	
 	H = diff[imp0[0]:,imp0[0]:]
 	H = H.tocsc() / nu0

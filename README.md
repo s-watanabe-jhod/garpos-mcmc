@@ -3,7 +3,7 @@
 "GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
 ### Version
-Latest version is GARPOS v1.0.0 (Apr. 14. 2022)
+Latest version is GARPOS v1.0.0 (Jul. 13. 2022)
 
 #### Major change(s)
 * v1.0.0: first release

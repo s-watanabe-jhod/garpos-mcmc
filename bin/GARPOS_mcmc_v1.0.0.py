@@ -22,7 +22,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 # GARPOS modules
-from garpos_mcmc_v100.setup_model import init_position, make_knots, data_var_base, setup_hparam
+from garpos_mcmc_v100.setup_model import init_position, make_knots, derivative2, data_var_base, setup_hparam
 from garpos_mcmc_v100.forward import calc_forward, calc_gamma, atd2enu
 from garpos_mcmc_v100.eachstep import hparam_to_real, E_matrix, log_likelihood, sampling_a
 from garpos_mcmc_v100.traveltime import calc_traveltime
@@ -106,8 +106,6 @@ hp_init, hp_proposal, hp_prior = setup_hparam(icfg)
 
 spdeg = 3
 knotint0 = float(icfg.get("Config-parameter","knotint0")) * 60.
-knotint1 = float(icfg.get("Config-parameter","knotint1")) * 60.
-knotint2 = float(icfg.get("Config-parameter","knotint2")) * 60.
 
 dt_thr = float(icfg.get("Config-parameter","dt_thr_minute")) * 60.
 fpower = float(icfg.get("Config-parameter","fpower"))
@@ -178,8 +176,11 @@ shots["logTT"] = np.log(shots.TT.values/T0)
 mat_dt, mat_tt0, same_mt, diff_mt  = data_var_base(shots, T0, dt_thr)
 
 # Set Model Parameters for gamma
-knotintervals = [knotint0, knotint1, knotint1, knotint2, knotint2]
+knotintervals = [knotint0] * 5
 knots = make_knots(shots, spdeg, knotintervals)
+H0 = derivative2(spdeg, knots[0])
+rankThr = 1.e-9
+rankH0 = np.linalg.matrix_rank(H0.toarray(), tol=rankThr)
 
 nmppos = len(mppos0)
 slvidx, imp0, jcb0, jcb2 = jacobian(nmppos, shots, spdeg, knots)
@@ -228,7 +229,7 @@ for i in pbar:
 	cTT, cTO = calc_traveltime(shots, mp, nMT, icfg, svp)
 	y = shots.logTT.values - np.log( cTT/T0 )
 	E_factor, E0 = E_matrix(mu_t, mu_m, ndata, mat_dt, diff_mt, same_mt, mat_tt0, fpower, rr)
-	H, rankH, loglikeH = H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, knots)
+	H, rankH, loglikeH = H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, H0, rankH0)
 	loglike, a_star, Ci_factor = log_likelihood(sigma, ndata, jcb, E_factor, H, rankH, loglikeH, y)
 	
 	if np.isnan(loglike):
