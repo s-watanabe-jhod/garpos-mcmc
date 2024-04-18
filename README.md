@@ -1,6 +1,6 @@
 # GARPOS-MCMC
 
-<img src="https://github.com/s-watanabe-jhod/garpos/assets/68180987/c7098604-1a07-4aa2-b591-1797eef5f07b" width=400 alt="GARPOS" style="background-color:＃FFFFFF;">
+<img src="https://github.com/s-watanabe-jhod/garpos/assets/68180987/ed955d3c-4c3b-4ca3-91d5-f57b876cfa7b" width=400 alt="GARPOS">
 
 "GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
