@@ -1,5 +1,7 @@
 # GARPOS-MCMC
 
+<img src="https://github.com/s-watanabe-jhod/garpos/assets/68180987/c7098604-1a07-4aa2-b591-1797eef5f07b" width=400 alt="GARPOS" style="background-color:＃FFFFFF;">
+
 "GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
 ### Version
@@ -60,6 +62,7 @@ For the conventional GARPOS methodology, please see Watanabe, S., Ishikawa, T., 
 
 * Python 3.7.3
 * Packages NumPy, Scipy, Pandas, Matplotlib, and Scikit-sparse are also required.
+  * NOTE: some reported that "sksparse" cannot be used on Apple M1 Chip. 
 * Fortran 90 compiler (e.g., gfortran)
 
 Environments under [Anaconda for Linux](https://www.anaconda.com/distribution/) is tested.
