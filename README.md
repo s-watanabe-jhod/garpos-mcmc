@@ -14,7 +14,7 @@ Latest version is GARPOS v1.0.0 (Jul. 13. 2022)
 
 ### for methodology
 
-Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. (preprint: https://doi.org/10.21203/rs.3.rs-1881756/v1).
+Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89 (2023). https://doi.org/10.1007/s00190-023-01774-6.
 
 ### for code
 Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2022). GARPOS-MCMC (Version 1.0.0). Zenodo. (https://doi.org/10.5281/zenodo.6825238)
