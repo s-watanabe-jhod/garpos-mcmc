@@ -5,19 +5,20 @@
 "GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
 ### Version
-Latest version is GARPOS v1.0.0 (Jul. 13. 2022)
+Latest version is GARPOS v1.1.0 (Apr. 19. 2024)
 
 #### Major change(s)
+* v1.1.0: Skip raytrace in each MCMC step with the pre-calculated travel times.
 * v1.0.0: first release
 
 # Citation
 
 ### for methodology
 
-Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89 (2023). https://doi.org/10.1007/s00190-023-01774-6.
+Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89. https://doi.org/10.1007/s00190-023-01774-6
 
 ### for code
-Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2022). GARPOS-MCMC (Version 1.0.0). Zenodo. (https://doi.org/10.5281/zenodo.6825238)
+Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC (Version 1.1.0). Zenodo. (URL available soon)
 
 ## Corresponding author
 
@@ -33,7 +34,7 @@ Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2022). GAR
 
 ## Algorithm and documentation
 
-Please see Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2022). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. (preprint: https://doi.org/10.21203/rs.3.rs-1881756/v1).
+Please see Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89. https://doi.org/10.1007/s00190-023-01774-6
 
 ### Models for perturbation field
 
@@ -61,7 +62,7 @@ For the conventional GARPOS methodology, please see Watanabe, S., Ishikawa, T., 
 # Requirements
 
 * Python 3.7.3
-* Packages NumPy, Scipy, Pandas, Matplotlib, and Scikit-sparse are also required.
+* Packages tqdm, NumPy, Scipy, Pandas, Matplotlib, and Scikit-sparse are also required.
   * NOTE: some reported that "sksparse" cannot be used on Apple M1 Chip. 
 * Fortran 90 compiler (e.g., gfortran)
 
@@ -139,7 +140,8 @@ Please be aware of your memory because it stores all MCMC samples for test.
   + jacobian (in func_*.py)
     + calc_gamma (in forward.py)
   + hparam_to_real (in eachstep.py)
-  + calc_traveltime (in traveltime.py)
+  + calc_traveltime (in traveltime_d.py)
+  + calc_traveltime_raytrace (in traveltime_rt.py)
   + E_matrix (in eachstep.py)
   + H_matrix (in func_*.py)
   + log_likelihood (in eachstep.py)
@@ -150,7 +152,8 @@ Please be aware of your memory because it stores all MCMC samples for test.
     + corr_attitude (in coordinate_trans.py)
       + llh2xyz (in coordinate_trans.py)
       + xyz2enu (in coordinate_trans.py)
-    + calc_traveltime (in traveltime.py)
+    + calc_traveltime_raytrace (in traveltime_rt.py)
   + outresults (in output.py)
     + write_cfg (in output.py)
   + plot_residuals (in resplot.py)
+  

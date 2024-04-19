@@ -3,6 +3,10 @@
 """
 Created:
 	12/01/2021 by S. Watanabe
+Modified (v1.1.0)
+	01/23/2023 by S. Watanabe
+	This is a version to skip raytrace in each MCMC loop with the pre-calculation of TT.
+	 - see traveltime_d.py
 """
 from optparse import OptionParser
 import os
@@ -20,14 +24,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
+import time
 
 # GARPOS modules
-from garpos_mcmc_v100.setup_model import init_position, make_knots, derivative2, data_var_base, setup_hparam
-from garpos_mcmc_v100.forward import calc_forward, calc_gamma, atd2enu
-from garpos_mcmc_v100.eachstep import hparam_to_real, E_matrix, log_likelihood, sampling_a
-from garpos_mcmc_v100.traveltime import calc_traveltime
-from garpos_mcmc_v100.output import outresults
-from garpos_mcmc_v100.resplot import plot_residuals
+from garpos_mcmc_v110.setup_model import init_position, make_knots, derivative2, data_var_base, setup_hparam
+from garpos_mcmc_v110.forward import calc_forward, calc_gamma, atd2enu
+from garpos_mcmc_v110.eachstep import hparam_to_real, E_matrix, sampling_a
+from garpos_mcmc_v110.traveltime_rt import calc_traveltime_raytrace
+from garpos_mcmc_v110.traveltime_d import calc_traveltime, calc_snell
+from garpos_mcmc_v110.output import outresults
+from garpos_mcmc_v110.resplot import plot_residuals
 
 modetxt = u"  m100: double-grad\n  m101: single-grad \n  m102: alpha2-offset"
 
@@ -58,16 +64,32 @@ opt.add_option( "--ext", action="store", type="string",
 				default="png", dest="ext",
 				help=u'Set extention for residual plot'
 				)
+opt.add_option( "--ndist", action="store", type="int", 
+				default=101, dest="ndist",
+				help=u'Set the number of calc. points for horizontal plane of travel-time catalogue (default: 101)'
+				)
+opt.add_option( "--ddepth", action="store", type="float", 
+				default=0.25, dest="ddep",
+				help=u'Set depth interval of travel-time catalogue [m] (default: 0.25)'
+				)
+opt.add_option( "--distmargin", action="store", type="float", 
+				default=2.0, dest="distmargin",
+				help=u'Set the calc. range (x water depth) for horizontal plane of travel-time catalogue (default: 2.0)'
+				)
+opt.add_option( "--depthmargin", action="store", type="float", 
+				default=1.5, dest="depmargin",
+				help=u'Set depth margin (+/-) for travel-time catalogue [m] (default: 1.5)'
+				)
 (options, args) = opt.parse_args()
 #####################################################################
 
 mode = options.mode
 if mode == "m100":
-	from garpos_mcmc_v100.func_m100 import jacobian, H_matrix, a_to_mp
+	from garpos_mcmc_v110.func_m100 import jacobian, H_matrix, a_to_mp
 elif mode == "m101":
-	from garpos_mcmc_v100.func_m101 import jacobian, H_matrix, a_to_mp
+	from garpos_mcmc_v110.func_m101 import jacobian, H_matrix, a_to_mp
 elif mode == "m102":
-	from garpos_mcmc_v100.func_m102 import jacobian, H_matrix, a_to_mp
+	from garpos_mcmc_v110.func_m102 import jacobian, H_matrix, a_to_mp
 else:
 	print("Set mode appropriately :: %s \n" % options.mode + modetxt)
 	sys.exit(1)
@@ -84,6 +106,11 @@ icfgf = options.invcfg
 suffix = options.suffix
 odir = options.directory+"/"
 ext = options.ext
+
+ndist = options.ndist
+ddep = options.ddep
+distmargin = options.distmargin
+depmargin = options.depmargin
 
 if not os.path.exists(odir):
 	os.makedirs(options.directory)
@@ -115,6 +142,7 @@ rr = float(icfg.get("Config-parameter","rr"))
 cfg = configparser.ConfigParser()
 cfg.read(cfgf, 'UTF-8')
 site = cfg.get("Obs-parameter", "Site_name")
+height0 = float( cfg.get("Site-parameter", "Height0") )
 
 # Read obs file
 obsfile = cfg.get("Data-file", "datacsv")
@@ -131,7 +159,6 @@ svp = pd.read_csv(svpf, comment='#')
 MTs = cfg.get("Site-parameter", "Stations").split()
 MTs = [ str(mt) for mt in MTs ]
 nMT = len(MTs)
-
 
 # Set Model parameter for positions
 mppos0, names, slvidx_pos, mtidx = init_position(cfg, MTs)
@@ -169,6 +196,9 @@ dl = svp.depth.values
 avevlyr = [ (vl[i+1]+vl[i])*(dl[i+1]-dl[i])/2. for i in svp.index[:-1]]
 V0 = np.array(avevlyr).sum()/(dl[-1]-dl[0])
 
+S0, Snell_interpolate = calc_snell(shots, mppos0, nMT, icfg, svp, height0, 
+                                   ndist, ddep, distmargin, depmargin)
+
 # calc characteristic time
 T0 = L0 / V0
 shots["logTT"] = np.log(shots.TT.values/T0)
@@ -200,7 +230,7 @@ pbar = tqdm(range(sample_size+1))
 for i in pbar:
 	
 	flag = 0
-	
+		
 	if i > 0:
 		x_proposal = np.array([sgmx]*len(slvx))
 		q_x = np.round(np.random.normal(0, x_proposal), 8)
@@ -219,33 +249,54 @@ for i in pbar:
 		mppos[slvidx_pos[j]] = dx
 	mp = np.zeros(imp0[5])
 	mp[:imp0[0]] = mppos.copy()
-	
 	cnt1 = np.array([ mppos[imt*3:imt*3+3] for imt in range(nMT)])
 	cnt1 = np.mean(cnt1, axis=0) + mppos[nMT*3:nMT*3+3]
 	
-	jcb = jcb0 + kappa12 * jcb2
-	
 	# Calc Log-likelihood
-	cTT, cTO = calc_traveltime(shots, mp, nMT, icfg, svp)
+	cTT, cTO = calc_traveltime(shots, mp, nMT, S0, Snell_interpolate)
+	if i == 0:
+		cTTrt, cTOrt = calc_traveltime_raytrace(shots, mp, nMT, icfg, svp)
+		diff_dtt = np.max(np.abs(cTTrt-cTT))*1000.
+		print("Max. difference of interpolated travel time: %8.3e" % diff_dtt + " msec.")
+		if diff_dtt > 1.e-2:
+			print("Error in interpolation of travel time !!!")
+			sys.exit(1)
+	
 	y = shots.logTT.values - np.log( cTT/T0 )
 	E_factor, E0 = E_matrix(mu_t, mu_m, ndata, mat_dt, diff_mt, same_mt, mat_tt0, fpower, rr)
-	H, rankH, loglikeH = H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, H0, rankH0)
-	loglike, a_star, Ci_factor = log_likelihood(sigma, ndata, jcb, E_factor, H, rankH, loglikeH, y)
+	logdetEi = -E_factor.logdet()
 	
-	if np.isnan(loglike):
+	H, rankH, loglikeH = H_matrix(nu0, nu1, nu2, rho2, imp0, spdeg, H0, rankH0)
+	
+	# Calc for perturbation model vector a 
+	jcb = jcb0 + kappa12 * jcb2
+	LiG = E_factor.solve_L(jcb.T.tocsc(), use_LDLt_decomposition=False)
+	GtEiG = LiG.T @ LiG
+	Ci = GtEiG + H
+	try:
+		Ci_factor = cholesky(Ci.tocsc(), ordering_method="natural")
+	except:
 		print(i, ": Ci is not positive definite")
 		exit()
 		continue
+	logdetC = -Ci_factor.logdet()
 	
+	Eiy = E_factor(y)
+	GtEiy = jcb @ Eiy
+	a_star = Ci_factor(GtEiy)
+	
+	gamma = -jcb.T @ a_star
+	R = y + gamma
+	EiR = E_factor(R)
+	
+	misfit = R @ EiR
+	penalty = ( a_star @ H ) @ a_star
+	s0 = misfit + penalty
+	
+	loglike  = -(ndata+rankH-len(a_star)) * math.log(sigma)
+	loglike += loglikeH + logdetEi + logdetC - s0/sigma
+	loglike = 0.5 * loglike
 	loglike += hppenalty
-	
-	if i == 0:
-		loglike0 = loglike - 10.
-	
-	# Acception ration of MCMC sample
-	dloglike = min(1., loglike - loglike0)
-	dloglike = max(-1.e2, dloglike)
-	accept_prob = min(1, np.exp(dloglike))
 	
 	# sampling for a
 	a_sample = sampling_a(nmp, sigma, a_star, Ci_factor)
@@ -268,6 +319,16 @@ for i in pbar:
 	g2e = (np.mean(a0[3])*0.5 + np.mean(a1[3])*0.5) * V0
 	g2n = (np.mean(a0[4])*0.5 + np.mean(a1[4])*0.5) * V0
 	alpha = np.array([dv0, g1e, g1n, g2e, g2n])
+	
+	if i == 0:
+		loglike0 = loglike - 10.
+	
+	##################################
+	# Acception ratio of MCMC sample #
+	##################################
+	dloglike = min(1., loglike - loglike0)
+	dloglike = max(-1.e2, dloglike)
+	accept_prob = min(1, np.exp(dloglike))
 	
 	# Metropolis-Hastings Algorithm
 	if accept_prob > np.random.uniform():
@@ -388,4 +449,5 @@ g.map_diag(sns.histplot, kde=False)
 g.map_lower(sns.kdeplot, cmap="Blues_d")
 histfig = resf.replace("res.dat","hist.pdf")
 g.savefig(histfig)
+plt.close()
 

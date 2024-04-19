@@ -12,7 +12,7 @@ from scipy.sparse import lil_matrix
 
 # garpos module
 from .coordinate_trans import corr_attitude
-from .traveltime import calc_traveltime
+from .traveltime_rt import calc_traveltime_raytrace
 
 
 def calc_forward(shots, mp, nMT, svp, T0, icfg):
@@ -59,7 +59,7 @@ def calc_forward(shots, mp, nMT, svp, T0, icfg):
 	shots['plu1'] = plu1
 
 	# calc Residuals
-	cTT, cTO = calc_traveltime(shots, mp, nMT, icfg, svp)
+	cTT, cTO = calc_traveltime_raytrace(shots, mp, nMT, icfg, svp)
 	logTTc = np.log( cTT/T0 ) - shots.gamma.values
 	ResiTT = shots.logTT.values - logTTc
 

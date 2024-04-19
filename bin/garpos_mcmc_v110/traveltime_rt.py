@@ -7,7 +7,7 @@ import math
 import ctypes
 import numpy as np
 
-def calc_traveltime(shotdat, mp, nMT, icfg, svp):
+def calc_traveltime_raytrace(shotdat, mp, nMT, icfg, svp):
 	"""
 	Calculate the round-trip travel time.
 	
