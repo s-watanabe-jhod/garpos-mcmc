@@ -89,7 +89,7 @@ When using GARPOS-MCMC, you should prepare the following files.
 * Reference sound speed data csv file
 * Settings file (e.g., Settings.ini)
 
-"bin/GARPOS_mcmc_v1.0.0.py" is a driver code. 
+"bin/GARPOS_mcmc_v1.1.0.py" is a driver code. 
 An observation dataset is stored in "sample" directory as demo data.
 
 NOTE: Unlike conventional GARPOS, travel-time outliers must be removed before the MCMC run.
@@ -99,11 +99,11 @@ To solve position with array-constraint condition (for epoch TOS2.1803.meiyo_m4)
 ```bash
 cd sample
 # for double-grad model (mode:m100)
-../bin/GARPOS_mcmc_v1.0.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
+../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
 # for single-grad model (mode:m101)
-../bin/GARPOS_mcmc_v1.0.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
+../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
 # for alpha2-offset model (mode:m102)
-../bin/GARPOS_mcmc_v1.0.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo102/TOS2 --mode m102
+../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo102/TOS2 --mode m102
 ```
 
 The following files will be created in the directory (specified with "-d" option).
@@ -127,7 +127,7 @@ Please be aware of your memory because it stores all MCMC samples for test.
 
 ### List of functions
 
-+ GARPOS_mcmc_v1.0.0.py
++ GARPOS_mcmc_v1.1.0.py
   + init_position (in setup_model.py)
   + make_knots (in setup_model.py)
   + derivative2 (in setup_model.py)
