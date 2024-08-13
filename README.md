@@ -90,7 +90,7 @@ When using GARPOS-MCMC, you should prepare the following files.
 * Reference sound speed data csv file
 * Settings file (e.g., Settings.ini)
 
-"bin/GARPOS_mcmc_v1.1.0.py" is a driver code. 
+"bin/solveSingleEpoch_mcmcv120.py" is a driver code. 
 An observation dataset is stored in "sample" directory as demo data.
 
 NOTE: Unlike conventional GARPOS, travel-time outliers must be removed before the MCMC run.
