@@ -20,7 +20,7 @@ Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A
 
 ### for code
 
-Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v1.2.0) Zenodo. 
+Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v1.2.0) Zenodo. https://doi.org/10.5281/zenodo.13309209
 
 ## Corresponding author
 
