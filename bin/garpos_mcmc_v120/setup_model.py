@@ -1,6 +1,8 @@
 """
 Created:
 	12/05/2021 by S. Watanabe
+Modified
+	08/13/2024 by S. Watanabe: Change settings file to YAML
 Contains:
 	init_position
 	make_knots
@@ -9,7 +11,6 @@ Contains:
 	setup_hparam
 """
 import sys
-import json
 import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix, linalg
 
@@ -117,6 +118,7 @@ def make_knots(shotdat, spdeg, knotintervals):
 			isetkn = np.where( (knots[k]>stfs[i]) & (knots[k]<st0s[i+1]) )[0]
 			if len(isetkn) > 2*(spdeg+2):
 				rmknot = np.append(rmknot, isetkn[spdeg+1:-spdeg-1])
+		rmknot = rmknot.astype(int)
 		if len(rmknot) > 0:
 			knots[k] = np.delete(knots[k], rmknot)
 
@@ -143,7 +145,7 @@ def derivative2(p, knot):
 	
 	Returns
 	-------
-	dk : ndarray
+	H0 : csc_matrix
 		2nd derivative matrix of the B-spline basis.
 	"""
 	
@@ -168,9 +170,9 @@ def derivative2(p, knot):
 	delta = delta.tocsr()
 	w = w.tocsr()
 	
-	dk = (delta.T @ w) @ delta
+	H0 = (delta.T @ w) @ delta
 	
-	return dk
+	return H0
 
 
 def data_var_base(shotdat, T0, dt_thr):
@@ -245,29 +247,32 @@ def setup_hparam(icfg):
 		Initial values of hyperparameter.
 	hp_proposal : ndarray
 		Standard deviations of proposal distribution for hyperparameter.
-	hp_prior : ndarray
-		Standard deviations of prior distribution for hyperparameter.
+	hp_prior_l : ndarray
+		Lower limits as prior for hyperparameter vector.
+	hp_prior_u : ndarray
+		Upper limits as prior for hyperparameter vector.
 	"""
 
 	# for position
-	sgmx = float(icfg.get("MCMC-parameter","sigma_x")) 
+	sgmx = float(icfg["MCMC-parameter"]["sigma_x"]) 
 	# for hyperparameters
-	logsigma, sgmsgm, prisgm = json.loads(icfg.get("MCMC-parameter","log10_sigma_sq"))
-	mu_t, sgmmut, primut = json.loads(icfg.get("MCMC-parameter","sigmoid_mu_t"))
-	mu_m, sgmmum, primum = json.loads(icfg.get("MCMC-parameter","sigmoid_mu_m"))
-	lognu0, sgmnu0, prinu0 = json.loads(icfg.get("MCMC-parameter","log10_nu0_sq"))
-	lognu1, sgmnu1, prinu1 = json.loads(icfg.get("MCMC-parameter","log10_nu1_sq"))
-	lognu2, sgmnu2, prinu2 = json.loads(icfg.get("MCMC-parameter","log10_nu2_sq"))
-	logrho2, sgmrho2, prirho2 = json.loads(icfg.get("MCMC-parameter","log10_rho2_sq"))
-	kappa12, sgmkappa12, prikappa12 = json.loads(icfg.get("MCMC-parameter","sigmoid_kappa12"))
+	logsgm  = icfg["MCMC-parameter"]["log10_sigma_sq"]
+	mu_t = icfg["MCMC-parameter"]["mu_t_minute"]
+	mu_m = icfg["MCMC-parameter"]["mu_m_range"]
+	lognu0 = icfg["MCMC-parameter"]["log10_nu0_sq"]
+	lognu1 = icfg["MCMC-parameter"]["log10_nu1_sq"]
+	lognu2 = icfg["MCMC-parameter"]["log10_nu2_sq"]
+	logrho2 = icfg["MCMC-parameter"]["log10_rho2_sq"]
+	kappa12 = icfg["MCMC-parameter"]["kappa12"]
 
 	# store in ndarray
-	hp_init = [logsigma, mu_t, mu_m, lognu0, lognu1, lognu2, logrho2, kappa12]
+	hp_init = [logsgm[0], mu_t[0], mu_m[0], lognu0[0], lognu1[0], lognu2[0], logrho2[0], kappa12[0]]
 	hp_init = np.array(hp_init)
-	hp_proposal = [sgmsgm, sgmmut, sgmmum, sgmnu0, sgmnu1, sgmnu2, sgmrho2, sgmkappa12]
+	hp_proposal = [logsgm[1], mu_t[1], mu_m[1], lognu0[1], lognu1[1], lognu2[1], logrho2[1], kappa12[1]]
 	hp_proposal = np.array(hp_proposal)
-	hp_prior = [prisgm, primut, primum, prinu0, prinu1, prinu2, prirho2, prikappa12]
-	hp_prior = np.array(hp_prior)
+	hp_prior_l = [logsgm[2], mu_t[2], mu_m[2], lognu0[2], lognu1[2], lognu2[2], logrho2[2], kappa12[2]]
+	hp_prior_l = np.array(hp_prior_l)
+	hp_prior_u = [logsgm[3], mu_t[3], mu_m[3], lognu0[3], lognu1[3], lognu2[3], logrho2[3], kappa12[3]]
+	hp_prior_u = np.array(hp_prior_u)
 
-	return hp_init, hp_proposal, hp_prior
-
+	return hp_init, hp_proposal, hp_prior_l, hp_prior_u

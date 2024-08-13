@@ -1,6 +1,8 @@
 """
 Created:
 	07/08/2022 by S. Watanabe
+Modified
+	08/13/2024 by S. Watanabe: Change settings file to YAML
 """
 import sys
 import math
@@ -8,12 +10,16 @@ import ctypes
 import numpy as np
 from scipy import interpolate
 
-def calc_snell(shotdat, mp, nMT, icfg, svp, height0, 
-               ndist, ddep, distmargin=2.0, depmargin=1.5):
+def calc_snell(shotdat, mp, nMT, icfg, svp, height0):
 	
 	# fortran library
-	libdir = icfg.get("Inv-parameter","lib_directory")
-	lib_raytrace = icfg.get("Inv-parameter","lib_raytrace")
+	libdir = icfg["TravelTimeCalc"]["lib_directory"]
+	lib_raytrace = icfg["TravelTimeCalc"]["lib_raytrace"]
+	# settings for interpolation
+	ndist = int(icfg["TravelTimeCalc"]["n_horizontal"])
+	ddep = float(icfg["TravelTimeCalc"]["d_depth"])
+	distmargin = float(icfg["TravelTimeCalc"]["dist_margin"])
+	depmargin = float(icfg["TravelTimeCalc"]["depth_margin"])
 	
 	dep0 = svp.depth.values[-1]
 	t0 = np.linspace(0., distmargin, ndist)

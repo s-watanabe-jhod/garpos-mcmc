@@ -1,6 +1,8 @@
 """
 Created:
 	07/01/2020 by S. Watanabe
+Modified
+	08/13/2024 by S. Watanabe: Change settings file to YAML
 """
 import sys
 import math
@@ -33,8 +35,8 @@ def calc_traveltime_raytrace(shotdat, mp, nMT, icfg, svp):
 	"""
 	
 	# fortran library
-	libdir = icfg.get("Inv-parameter","lib_directory")
-	lib_raytrace = icfg.get("Inv-parameter","lib_raytrace")
+	libdir = icfg["TravelTimeCalc"]["lib_directory"]
+	lib_raytrace = icfg["TravelTimeCalc"]["lib_raytrace"]
 	
 	# station pos
 	sta0_e = mp[shotdat['mtid']+0] + mp[nMT*3+0]

@@ -13,7 +13,7 @@ from sksparse.cholmod import cholesky
 
 ########################
 
-def hparam_to_real(hp, hp_init, hp_prior):
+def hparam_to_real(hp, hp_init, hp_prior_l, hp_prior_u):
 	"""
 	Translate the hyperparameters in real-scale.
 	
@@ -23,29 +23,32 @@ def hparam_to_real(hp, hp_init, hp_prior):
 		Hyperparameter vector (used for MCMC sampling).
 	hp_init : ndarray
 		Priors of hyperparameter vector.
-	hp_prior : ndarray
-		Prior standard deviations of hyperparameter vector.
+	hp_prior_l : ndarray
+		Lower limits as prior for hyperparameter vector.
+	hp_prior_u : ndarray
+		Upper limits as prior for hyperparameter vector.
 	
 	Returns
 	-------
 	sigma, mu_t, mu_m, 	nu0, nu1, nu2, rho2, kappa12 : float
 		Hyperparameters in real scale (as defined in obs. eq.).
-	hppenalty : float
-		L2 penalty related to the hyperparameters' priors.
+	hppenalty : Bool
+		Whether the hps are set in the upper/lower limits.
 	"""
 	
 	sigma = 10.**hp[0]
-	mu_t = 1. / (1. + math.e**-hp[1]) * 6. * 60. + 10.
-	mu_m = 1. / (1. + math.e**-hp[2])
+	mu_t = hp[1] * 60.
+	mu_m = hp[2]
 	nu0 = 10.**hp[3]
 	nu1 = 10.**hp[4]
 	nu2 = 10.**hp[5]
 	rho2 = 10.**hp[6]
-	kappa12 = 1. / (1. + math.e**-hp[7])
+	kappa12 = hp[7]
 	
 	# Penalty from the prior distribution of hyperparameters
-	hppenalty = [((hp[k]-hp_init[k])/hp_prior[k])**2. for k in range(len(hp))]
-	hppenalty = -0.5 * sum(hppenalty)
+	hp_l = hp - hp_prior_l
+	hp_u = hp_prior_u - hp
+	hppenalty = np.all( hp_l > 0. ) and np.all( hp_u > 0. )
 	
 	return sigma, mu_t, mu_m, nu0, nu1, nu2, rho2, kappa12, hppenalty
 

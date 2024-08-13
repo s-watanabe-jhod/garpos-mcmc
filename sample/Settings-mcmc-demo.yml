@@ -1,0 +1,57 @@
+#######################################################
+# Information for calculating the Travel Times #
+#######################################################
+TravelTimeCalc:
+  # Path for F90's RayTrace lib
+  lib_directory : "../bin/garpos_mcmc_v120/f90lib"
+  lib_raytrace  : "lib_raytrace.so"
+  # Parameters for interpolation of travel time calcs.
+  n_horizontal : 101   # Set the number of calc. points for horizontal plane of travel-time catalogue (default: 101)
+  d_depth      : 0.25  # Set depth interval of travel-time catalogue [m] (default: 0.25)
+  dist_margin  : 2.0   # Set the calc. range (x water depth) for horizontal plane of travel-time catalogue (default: 2.0)
+  depth_margin : 1.5   # Set depth margin (+/-) for travel-time catalogue [m] (default: 1.5)
+  
+
+########################################
+# Configuration for MCMC sampling #
+########################################
+MCMC-parameter:
+  # For sample (NOTE:: This is too short!!)
+  sample_rate : 1
+  sample_size : 300
+  # For output
+  burn_in     : 150
+  skip_sample : 1
+  
+  # Stdev of proposal distributions for position parameter
+  sigma_x : 0.008
+  
+  # Control parameters for hyperparameters:
+  #   1st : Initial value of hyperparameters
+  #   2nd : Std. deviation of proposal distributions
+  #   3rd : Lower limit of prior pdf (uniform dist.) for hyperparameter
+  #   4th : Upper limit of prior pdf (uniform dist.) for hyperparameter
+  log10_sigma_sq  : [-8.5, 0.01, -16.0, 0.0]
+  mu_t_minute     : [ 1.0, 0.03,   0.1, 6.0]
+  mu_m_range      : [ 0.3, 0.03,   0.0, 0.8]
+  log10_nu0_sq    : [-1.0, 0.1,   -4.0, 3.0]
+  log10_nu1_sq    : [-1.0, 0.1,   -4.0, 3.0]
+  log10_nu2_sq    : [-1.0, 0.1,   -4.0, 3.0]
+  log10_rho2_sq   : [-2.5, 0.2,   -9.0, 3.0]
+  kappa12         : [ 0.5, 0.03,   0.0, 1.0]
+
+########################################
+# Configuration for Model setting #
+########################################
+Config-parameter:
+  # Typical Knot interval (in min.) for gamma's component (a0, a1, a2).
+  #  Note ;; shorter numbers recommended, but consider the computational resources.
+  knotint0 : 5
+  
+  # Parameters for calculate data covariance E
+  #  dt_thr_minute : Threshold for shot-time difference to be correlated [in min.]
+  #  fpower : Number of significant digits for correlation coefficient
+  #  rr : Scale for i != j shot (to avoid rank deficient)
+  dt_thr_minute : 20.
+  fpower : 3.5
+  rr : 0.9

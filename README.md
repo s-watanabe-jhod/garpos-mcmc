@@ -5,9 +5,10 @@
 "GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
 ### Version
-Latest version is GARPOS v1.1.0 (Apr. 19. 2024)
+Latest version is GARPOS v1.2.0 (Aug. 13. 2024)
 
 #### Major change(s)
+* v1.2.0: Transformation methods for estimation parameters are changed. The format for configuration file is changed. 
 * v1.1.0: Skip raytrace in each MCMC step with the pre-calculated travel times.
 * v1.0.0: first release
 
@@ -18,7 +19,8 @@ Latest version is GARPOS v1.1.0 (Apr. 19. 2024)
 Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89. https://doi.org/10.1007/s00190-023-01774-6
 
 ### for code
-Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v1.1.0) Zenodo. https://doi.org/10.5281/zenodo.11014431
+
+Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v1.2.0) Zenodo. 
 
 ## Corresponding author
 
@@ -34,7 +36,7 @@ Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GAR
 
 ## Algorithm and documentation
 
-Please see Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89. https://doi.org/10.1007/s00190-023-01774-6
+Please see the literature in "citation for methodology".
 
 ### Models for perturbation field
 
@@ -61,13 +63,12 @@ For the conventional GARPOS methodology, please see Watanabe, S., Ishikawa, T., 
 
 # Requirements
 
-* Python 3.7.3
+Environments under [Anaconda for Linux] (https://www.anaconda.com/distribution/) is tested.
+
+* Python 3.11.7 is tested.
 * Packages tqdm, NumPy, Scipy, Pandas, Matplotlib, and Scikit-sparse are also required.
   * NOTE: some reported that "sksparse" cannot be used on Apple M1 Chip. 
 * Fortran 90 compiler (e.g., gfortran)
-
-Environments under [Anaconda for Linux](https://www.anaconda.com/distribution/) is tested.
-
 
 ### Compilation of Fortran90-based library
 
@@ -99,7 +100,7 @@ To solve position with array-constraint condition (for epoch TOS2.1803.meiyo_m4)
 ```bash
 cd sample
 # for double-grad model (mode:m100)
-../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
+../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
 # for single-grad model (mode:m101)
 ../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
 # for alpha2-offset model (mode:m102)

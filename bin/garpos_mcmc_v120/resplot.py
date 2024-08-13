@@ -62,23 +62,6 @@ def plot_residuals(resf, obsfile, mpfile, d0, MTs, V0, ext):
 	# read hyperparamters
 	resflines = open(resf, "r").readlines()
 	for rline in resflines:
-		"""
-		if "ABIC" in rline:
-			abic = rline.strip().split("=")[1].split()[0]
-			abic = float(abic)
-		if "lambda_0" in rline:
-			lamb0 = rline.strip().split("=")[-1]
-			lamb0 = math.log10(float(lamb0))
-		if "lambda_g" in rline:
-			lambg = rline.strip().split("=")[-1]
-			lambg = math.log10(float(lambg))
-		if "mu_t" in rline:
-			mu_t = rline.strip().split("=")[-1].split()[0]
-			mu_t = float(mu_t)
-		if "mu_MT" in rline:
-			mu_m = rline.strip().split("=")[-1].strip()
-			mu_m = float(mu_m)
-		"""
 		if "Site_name" in rline:
 			site = rline.strip().split("=")[-1].strip()
 		if "Campaign" in rline:
