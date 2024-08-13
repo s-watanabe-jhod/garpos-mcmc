@@ -99,12 +99,12 @@ To solve position with array-constraint condition (for epoch TOS2.1803.meiyo_m4)
 
 ```bash
 cd sample
-# for double-grad model (mode:m100)
+# for mode m100
 ../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
-# for single-grad model (mode:m101)
-../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
-# for alpha2-offset model (mode:m102)
-../bin/GARPOS_mcmc_v1.1.0.py -i Settings-mcmc-demo.ini -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo102/TOS2 --mode m102
+# for mode m101
+../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
+# for mode m102
+../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo102/TOS2 --mode m102
 ```
 
 The following files will be created in the directory (specified with "-d" option).
