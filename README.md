@@ -17,6 +17,8 @@ Latest version is GARPOS v2.0.0 (Aug. 14. 2024)
 
 # Citation
 
+Please see the latest GitHub page (https://github.com/s-watanabe-jhod/garpos-mcmc/) for the updates of papers. 
+
 ### for methodology (version 2 with WBIC)
 
 Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (in prep.). Model selection for the sound speed perturbation of the GNSS-A using the widely applicable Bayesian Information Criterion (WBIC). preprint will be available soon.
