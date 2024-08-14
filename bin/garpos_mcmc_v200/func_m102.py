@@ -10,7 +10,7 @@ Contains:
 """
 import math
 import numpy as np
-from scipy.sparse import csc_matrix, lil_matrix, csr_matrix, coo_matrix
+from scipy.sparse import csc_matrix, lil_matrix
 
 # GARPOS module
 from .forward import calc_gamma
@@ -35,21 +35,22 @@ def jacobian(nmppos, shots, spdeg, knots):
 	-------
 	slvidx : list
 		Indices of model parameters to be solved. (for gamma's coeff.)
-	imp0 : ndarray (len=5)
-		Indices where the type of model parameters change.
+	imp0 : ndarray (len=7)
+		Indices where the type of model parameters change. The last two is for delta_alpha2.
 	jcb0 : csc_matrix
-		Jacobian matrix for vector a.
+		Jacobian matrix for vector a (only for alpha0 and alpha1).
 	jcb2 : csc_matrix
-		Zero matrix for this constrint.
+		Jacobian matrix for vector a (only for alpha2), to tie alpha1 and alpha2.
 	"""
 	
 	# set pointers for model parameter vector
 	ncps = [ max([0, len(kn)-spdeg-1]) for kn in knots]
-	imp0 = np.cumsum(np.array([nmppos] + ncps))
+	imp0 = np.cumsum(np.array([nmppos] + ncps + [1, 1]))
 	imp0 = imp0.astype(int)
 	
 	# set solve index for model parameter vector
-	slvidx = np.arange(imp0[0],imp0[5],dtype=int)
+	slvidx = np.arange(imp0[0],imp0[3],dtype=int)
+	slvidx = np.append(slvidx, np.array(imp0[5:7]))
 	slvidx = slvidx.astype(int)
 	
 	nmp = len(slvidx)
@@ -59,21 +60,38 @@ def jacobian(nmppos, shots, spdeg, knots):
 	jcb0 = lil_matrix( (nmp, ndata) )
 	mpj = np.zeros(imp0[5])
 	imp = 0
-	for impsv in range(imp0[0],imp0[5]):
+	for impsv in range(imp0[0],imp0[3]):
 		mpj[impsv] = 1.
 		gamma, a = calc_gamma(mpj, shots, imp0, spdeg, knots)
 		jcb0[imp,:] = -gamma
 		imp += 1
 		mpj[impsv] = 0.
+	
+	mpj[imp0[3]:imp0[4]] = 1.
+	gamma, a = calc_gamma(mpj, shots, imp0, spdeg, knots)
+	jcb0[-2,:] = -gamma
+	mpj = np.zeros(imp0[5])
+	mpj[imp0[4]:imp0[5]] = 1.
+	gamma, a = calc_gamma(mpj, shots, imp0, spdeg, knots)
+	jcb0[-1,:] = -gamma
+	mpj = np.zeros(imp0[5])
+	
 	jcb0 = jcb0.tocsc() # jcb = Gt
 	
 	jcb2 = lil_matrix( (nmp, ndata) )
+	imp = imp0[1]-imp0[0]
+	for impsv in range(imp0[3],imp0[5]):
+		mpj[impsv] = 1.
+		gamma, a = calc_gamma(mpj, shots, imp0, spdeg, knots)
+		jcb2[imp,:] = -gamma
+		imp += 1
+		mpj[impsv] = 0.
 	jcb2 = jcb2.tocsc()
 	
 	return slvidx, imp0, jcb0, jcb2
 
 
-def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
+def H_matrix(nu0, nu1, nu2, rho2, H0s):
 	"""
 	Set the smoothness constraint matrix H.
 	
@@ -81,10 +99,8 @@ def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
 	----------
 	nu0, nu1, nu2, rho2 : float
 		hyperparameters in real scale (as defined in obs. eq.).
-	nknot : int
-		Number of parameter for B-spline for each component.
-	H0 : csc_matrix
-		2nd derivative matrix of the B-spline basis.
+	H0s : list of csc_matrix
+		Base-matrices for the smoothness constraint.
 	
 	Returns
 	-------
@@ -92,14 +108,41 @@ def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
 		Matrix for the smoothness constraint.
 	"""
 	
-	H = lil_matrix( (nknot*5, nknot*5) )
-	H[nknot*0:nknot*1, nknot*0:nknot*1] = H0 / nu0
-	H[nknot*1:nknot*2, nknot*1:nknot*2] = H0 / (nu0*nu1)
-	H[nknot*2:nknot*3, nknot*2:nknot*3] = H0 / (nu0*nu1)
-	H[nknot*3:nknot*4, nknot*3:nknot*4] = H0 / (nu0*nu2)
-	H[nknot*4:nknot*5, nknot*4:nknot*5] = H0 / (nu0*nu2)
+	H = H0s[0]/nu0 + H0s[1]/(nu0*nu1) + H0s[2]/rho2
 	
 	return H
+
+
+def H_bases(nknot, H0):
+	"""
+	Set the base-matrices for smoothness constraint matrix H.
+	
+	Parameters
+	----------
+	nknot : int
+		Number of parameter for B-spline for each component.
+	H0 : csc_matrix
+		2nd derivative matrix of the B-spline basis.
+	
+	Returns
+	-------
+	H0s : list of csc_matrix
+		Base-matrices for the smoothness constraint.
+	"""
+	
+	H00 = lil_matrix( (nknot*3+2, nknot*3+2) )
+	H01 = lil_matrix( (nknot*3+2, nknot*3+2) )
+	H0r = lil_matrix( (nknot*3+2, nknot*3+2) )
+	H00[nknot*0:nknot*1, nknot*0:nknot*1] = H0
+	H01[nknot*1:nknot*2, nknot*1:nknot*2] = H0
+	H01[nknot*2:nknot*3, nknot*2:nknot*3] = H0
+	H0r[-2,-2] = 1.
+	H0r[-1,-1] = 1.
+	H00 = H00.tocsc()
+	H01 = H01.tocsc()
+	H0r = H0r.tocsc()
+	
+	return [H00, H01, H0r]
 
 
 def H_params(nu0, nu1, nu2, rho2, rankH0):
@@ -120,9 +163,13 @@ def H_params(nu0, nu1, nu2, rho2, rankH0):
 	loglikeH : float
 		The value of log(||Lambda_H||).
 	"""
-	rankH = rankH0*5
-	logdetH  = -rankH0*5 * math.log(nu0)
-	logdetH += -rankH0*2 * (math.log(nu1)+math.log(nu2))
+	rankHg2 = 2
+	logdetHg2 = -2. * math.log(rho2)
+	
+	rankH = rankH0*3 + rankHg2
+	logdetH  = -rankH0*3 * math.log(nu0)
+	logdetH += -rankH0*2 * math.log(nu1)
+	logdetH += logdetHg2
 
 	return rankH, logdetH
 
@@ -136,7 +183,7 @@ def a_to_mp(imp0, kappa12, mp, a):
 	imp0 : ndarray (len=5)
 		Indices where the type of model parameters change.
 	kappa12 : float
-		Hyperparameter related to the gradient-layer's depth (not used in this version).
+		Hyperparameter related to the gradient-layer's depth.
 	mp : ndarray
 		Model parameter vector.
 	a : ndarray
@@ -148,7 +195,9 @@ def a_to_mp(imp0, kappa12, mp, a):
 		Model parameter vector.
 	"""
 	
-	mp[imp0[0]:imp0[5]] = a
+	mp[imp0[0]:imp0[3]] = a[:-2]
+	mp[imp0[3]:imp0[4]] = kappa12 * mp[imp0[1]:imp0[2]] + a[-2]
+	mp[imp0[4]:imp0[5]] = kappa12 * mp[imp0[2]:imp0[3]] + a[-1]
 	
 	return mp
 

@@ -1,27 +1,28 @@
-#######################################################
+################################################
 # Information for calculating the Travel Times #
-#######################################################
+################################################
 TravelTimeCalc:
   # Path for F90's RayTrace lib
-  lib_directory : "../bin/garpos_mcmc_v120/f90lib"
+  lib_directory : "../bin/garpos_mcmc_v200/f90lib"
   lib_raytrace  : "lib_raytrace.so"
   # Parameters for interpolation of travel time calcs.
   n_horizontal : 101   # Set the number of calc. points for horizontal plane of travel-time catalogue (default: 101)
   d_depth      : 0.25  # Set depth interval of travel-time catalogue [m] (default: 0.25)
   dist_margin  : 2.0   # Set the calc. range (x water depth) for horizontal plane of travel-time catalogue (default: 2.0)
   depth_margin : 1.5   # Set depth margin (+/-) for travel-time catalogue [m] (default: 1.5)
-  
 
-########################################
+###################################
 # Configuration for MCMC sampling #
-########################################
+###################################
 MCMC-parameter:
-  # For sample (NOTE:: This is too short!!)
+  # For sample (NOTE:: This is demo mode so that it must be too short!!)
   sample_rate : 1
   sample_size : 300
   # For output
   burn_in     : 150
   skip_sample : 1
+  # For final sample
+  final_sample_scale : 1
   
   # Stdev of proposal distributions for position parameter
   sigma_x : 0.008
@@ -40,9 +41,9 @@ MCMC-parameter:
   log10_rho2_sq   : [-2.5, 0.2,   -9.0, 3.0]
   kappa12         : [ 0.5, 0.03,   0.0, 1.0]
 
-########################################
+###################################
 # Configuration for Model setting #
-########################################
+###################################
 Config-parameter:
   # Typical Knot interval (in min.) for gamma's component (a0, a1, a2).
   #  Note ;; shorter numbers recommended, but consider the computational resources.

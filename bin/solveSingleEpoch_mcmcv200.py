@@ -2,7 +2,6 @@
 """
 Created:
 	08/13/2024 by S. Watanabe
-		This is a newly created driver script.
 """
 from optparse import OptionParser
 import os
@@ -10,7 +9,7 @@ import sys
 
 #sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-from garpos_mcmc_v120.garpos_mcmc import garpos_mcmc
+from garpos_mcmc_v200.garpos_wbic import model_search_wbic
 
 if __name__ == '__main__':
 
@@ -34,10 +33,6 @@ if __name__ == '__main__':
 					default="", dest="suf",
 					help=u"Set suffix for result files"
 					)
-	opt.add_option( "--mode", action="store", type="string", 
-					default="na", dest="mode",
-					help=u'Set mode (m100/m101/m102)' + modetxt
-					)
 	opt.add_option( "--ext", action="store", type="string", 
 					default="png", dest="ext",
 					help=u'Set extention for residual plot'
@@ -52,13 +47,8 @@ if __name__ == '__main__':
 		print("NOT FOUND (site parameter file) :: %s" % options.cfgfile)
 		sys.exit(1)
 	
-	mode = options.mode
-	if not (mode == "m100" or mode == "m101" or mode == "m102"):
-		print("Set mode appropriately :: %s \n" % options.mode + modetxt)
-		sys.exit(1)
 	ext = options.ext
-	
 	odir = options.directory
-	rf = garpos_mcmc(options.cfgfile, options.invcfg, odir, options.suf, mode, ext)
+	rf = model_search_wbic(options.cfgfile, options.invcfg, odir, options.suf, ext)
 
 	exit()

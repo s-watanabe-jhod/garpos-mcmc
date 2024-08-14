@@ -1,7 +1,6 @@
 """
 Created:
 	08/13/2024 by S. Watanabe
-		This is a module that was originally written in driver script.
 Contains:
 	garpos_mcmc
 """
@@ -31,7 +30,7 @@ from .traveltime_d import calc_traveltime, calc_snell
 from .output import outresults
 from .resplot import plot_residuals
 
-def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
+def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext, iwbic):
 	
 	if not os.path.exists(odir):
 		os.makedirs(odir)
@@ -42,21 +41,25 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 		icfg = yaml.safe_load(icfgyml)
 	
 	if mode == "m100":
-		from .func_m100 import jacobian, H_matrix, H_params, a_to_mp
+		from .func_m100 import jacobian, H_bases, H_matrix, H_params, a_to_mp
 	elif mode == "m101":
-		from .func_m101 import jacobian, H_matrix, H_params, a_to_mp
+		from .func_m101 import jacobian, H_bases, H_matrix, H_params, a_to_mp
 	elif mode == "m102":
-		from .func_m102 import jacobian, H_matrix, H_params, a_to_mp
+		from .func_m102 import jacobian, H_bases, H_matrix, H_params, a_to_mp
 	else:
 		print("Set mode appropriately :: %s \n" % options.mode + modetxt)
 		sys.exit(1)
 	
 	# MCMC sampling parameters
+	if iwbic:
+		sample_scale = 1
+	else:
+		sample_scale = int(icfg["MCMC-parameter"]["final_sample_scale"])
 	sample_rate = int(icfg["MCMC-parameter"]["sample_rate"])
-	sample_size = int(icfg["MCMC-parameter"]["sample_size"])
-	skip_sample = int(icfg["MCMC-parameter"]["skip_sample"])
-	burn_in = int(icfg["MCMC-parameter"]["burn_in"])
-	
+	sample_size = int(icfg["MCMC-parameter"]["sample_size"]) * sample_scale
+	skip_sample = int(icfg["MCMC-parameter"]["skip_sample"]) * sample_scale
+	burn_in = int(icfg["MCMC-parameter"]["burn_in"]) * sample_scale
+
 	# Std. dev. of proposal distribution for position
 	sgmx = float(icfg["MCMC-parameter"]["sigma_x"]) 
 
@@ -84,6 +87,13 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	shots = shots[~shots['flag']].reset_index(drop=True).copy()
 	ndata = len(shots.index)
 
+	# Set beta for WBIC calc.
+	if iwbic:
+		beta = 1./math.log(ndata)
+		hp_proposal = hp_proposal * beta
+	else:
+		beta = 1.
+	
 	# Sound speed profile
 	svpf = cfg.get("Obs-parameter", "SoundSpeed")
 	svp = pd.read_csv(svpf, comment='#')
@@ -142,6 +152,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	nknot = len(knots[0])-spdeg-1
 	rankThr = 1.e-9
 	rankH0 = np.linalg.matrix_rank(H0.toarray(), tol=rankThr)
+	H0s = H_bases(nknot, H0)
 
 	nmppos = len(mppos0)
 	slvidx, imp0, jcb0, jcb2 = jacobian(nmppos, shots, spdeg, knots)
@@ -165,7 +176,6 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	for i in pbar:
 		
 		flag = 0
-			
 		if i > 0:
 			x_proposal = np.array([sgmx]*len(slvx))
 			q_x = np.round(np.random.normal(0, x_proposal), 8)
@@ -202,13 +212,13 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 			E_factor, E0 = E_matrix(mu_t, mu_m, ndata, mat_dt, diff_mt, same_mt, mat_tt0, fpower, rr)
 			logdetEi = -E_factor.logdet()
 			rankH, logdetH = H_params(nu0, nu1, nu2, rho2, rankH0)
-			H = H_matrix(nu0, nu1, nu2, rho2, nknot, H0)
+			H = H_matrix(nu0, nu1, nu2, rho2, H0s)
 			
 			# Calc for perturbation model vector a 
 			jcb = jcb0 + kappa12 * jcb2
 			LiG = E_factor.solve_L(jcb.T.tocsc(), use_LDLt_decomposition=False)
 			GtEiG = LiG.T @ LiG
-			Ci = (GtEiG + H).tocsc()
+			Ci = (beta * GtEiG + H).tocsc()
 			try:
 				Ci_factor = cholesky(Ci, ordering_method="natural")
 			except:
@@ -222,42 +232,50 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 			
 			Eiy = E_factor(y)
 			GtEiy = jcb @ Eiy
-			a_star = Ci_factor(GtEiy)
+			a_star = beta * Ci_factor(GtEiy)
 			gamma = -jcb.T @ a_star
 			R = y + gamma
-			#EiR = E_factor(R)
-			#misfit = R @ EiR
 			LiR = E_factor.solve_L(R, use_LDLt_decomposition=False)
 			misfit = LiR.T @ LiR
 			penalty = ( a_star @ H ) @ a_star
-			s0 = misfit + penalty
+			s0 = beta * misfit + penalty
 			
 			logdetC = -Ci_factor.logdet()
-			loglike  = -(ndata+rankH-len(a_star)) * math.log(sigma)
+			loglike  = -(ndata*beta+rankH-len(a_star)) * math.log(sigma)
 			loglike += logdetH + logdetEi + logdetC - s0/sigma
 			loglike = 0.5 * loglike
 			
 			# sampling for a
 			a_sample = sampling_a(nmp, sigma, a_star, Ci_factor)
 			
-			a0 = []
-			a1 = []
-			mp = a_to_mp(imp0, kappa12, mp, a_sample)
-			for k, kn in enumerate(knots):
-				if len(kn) == 0:
-					a0.append( 0. )
-					a1.append( 0. )
-					continue
-				ct = mp[imp0[k]:imp0[k+1]]
-				bs = BSpline(kn, ct, spdeg, extrapolate=False)
-				a0.append( bs(shots.ST.values) )
-				a1.append( bs(shots.RT.values) )
-			dv0 = (np.mean(a0[0])*0.5 + np.mean(a1[0])*0.5) * V0
-			g1e = (np.mean(a0[1])*0.5 + np.mean(a1[1])*0.5) * V0
-			g1n = (np.mean(a0[2])*0.5 + np.mean(a1[2])*0.5) * V0
-			g2e = (np.mean(a0[3])*0.5 + np.mean(a1[3])*0.5) * V0
-			g2n = (np.mean(a0[4])*0.5 + np.mean(a1[4])*0.5) * V0
-			alpha = np.array([dv0, g1e, g1n, g2e, g2n])
+			if iwbic:
+				alpha = np.zeros(5)
+				gamma_k = -jcb.T @ a_sample
+				Rk = y + gamma_k
+				LiRk = E_factor.solve_L(Rk, use_LDLt_decomposition=False)
+				misfit_sample = LiRk.T @ LiRk
+				wbic = -logdetEi + ndata * math.log(sigma) + misfit_sample/sigma
+				wbic = wbic * 0.5
+			else:
+				a0 = []
+				a1 = []
+				mp = a_to_mp(imp0, kappa12, mp, a_sample)
+				for k, kn in enumerate(knots):
+					if len(kn) == 0:
+						a0.append( 0. )
+						a1.append( 0. )
+						continue
+					ct = mp[imp0[k]:imp0[k+1]]
+					bs = BSpline(kn, ct, spdeg, extrapolate=False)
+					a0.append( bs(shots.ST.values) )
+					a1.append( bs(shots.RT.values) )
+				dv0 = (np.mean(a0[0])*0.5 + np.mean(a1[0])*0.5) * V0
+				g1e = (np.mean(a0[1])*0.5 + np.mean(a1[1])*0.5) * V0
+				g1n = (np.mean(a0[2])*0.5 + np.mean(a1[2])*0.5) * V0
+				g2e = (np.mean(a0[3])*0.5 + np.mean(a1[3])*0.5) * V0
+				g2n = (np.mean(a0[4])*0.5 + np.mean(a1[4])*0.5) * V0
+				alpha = np.array([dv0, g1e, g1n, g2e, g2n])
+				wbic = 0.
 			
 			if i == 0:
 				loglike0 = loglike - 10.
@@ -278,6 +296,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 			alpha0 = alpha.copy()
 			R0 = R.copy()
 			loglike0 = loglike
+			wbic0 = wbic
 			flag = 1 # flag for acception
 			sumflag += 1
 			
@@ -286,6 +305,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 				Ci_factor_map = Ci_factor.copy()
 				hp_map = hp0.copy()
 				loglike_map = loglike0
+				wbic_map = wbic0
 		
 		# sampling at "sample_rate"
 		if i % sample_rate == 0:
@@ -293,6 +313,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 			res = np.append(res, hp0)
 			res = np.append(res, alpha0)
 			res = np.append(res, loglike0)
+			res = np.append(res, wbic0)
 			res = np.append(res, flag)
 			samples.append(res)
 		
@@ -313,7 +334,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	clmn += ['log10_sigma', 'mu_t', 'mu_m', 
 			 'log10_nu0', 'log10_nu1', 'log10_nu2', 
 			 'log10_rho2', 'kappa12']
-	clmn += ['dV0', 'g1e', 'g1n', 'g2e', 'g2n', 'loglikelihood']
+	clmn += ['dV0', 'g1e', 'g1n', 'g2e', 'g2n', 'loglikelihood', 'wbic']
 	clmn0 = clmn.copy()
 	clmn += ['flag']
 	
@@ -330,7 +351,8 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	clmn_hist += ['log10_sigma', 'mu_t', 'mu_m', 
 				  'log10_nu0', 'log10_nu1', 'log10_nu2', 
 				  'log10_rho2', 'kappa12']
-	clmn_hist += ['dV0', 'g1e', 'g1n', 'g2e', 'g2n']
+	if not iwbic:
+		clmn_hist += ['dV0', 'g1e', 'g1n', 'g2e', 'g2n']
 
 	if mode == "m100":
 		clmn_chain.remove('log10_rho2')
@@ -349,6 +371,17 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	df_result = pd.DataFrame(samples, columns = clmn)
 	df_resi = pd.DataFrame(resi_samples)
 
+	# WBIC value
+	wbic = df_result.loc[burn_in::skip_sample,"wbic"].values.mean()
+	aveloglike = df_result.loc[burn_in::skip_sample,"loglikelihood"].values.mean()
+	if iwbic:
+		### Observation parameter ###
+		site = cfg.get("Obs-parameter", "Site_name")
+		camp = cfg.get("Obs-parameter", "Campaign")
+		# filenames to output
+		filebase = site + "." + camp + suffix
+		resf  = odir + filebase + "-res.dat"
+	
 	# output the MAP solution
 	gamma, a  = calc_gamma(mp_map, shots, imp0, spdeg, knots)
 	shots["gamma"] = gamma
@@ -366,7 +399,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	mpf  = resf.replace('res.dat','m.p.dat')
 	obsf = resf.replace('res.dat','obs.csv')
 	plot_residuals(resf, obsf, mpf, d0, MTs, V0, ext)
-
+	
 	# chain
 	chainf = resf.replace("res.dat","chain.csv")
 	df_result.to_csv(chainf, index = None)
@@ -385,7 +418,7 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 
 	# percentile
 	perf = resf.replace('res.dat','percentile.csv')
-	dfp = df_result.loc[burn_in:, clmn_hist].quantile([0.025, 0.25, 0.5, 0.75, 0.975])
+	dfp = df_result.loc[burn_in:, clmn_hist].quantile([0.03, 0.25, 0.5, 0.75, 0.97])
 	dfp.to_csv(perf)
 
 	# Plot a histogram
@@ -400,6 +433,5 @@ def garpos_mcmc(cfgf, icfgf, odir, suffix, mode, ext):
 	g.savefig(histfig)
 	plt.close()
 	
-	print(resf)
-	return [resf]
-
+	print(resf, "WBIC = ", wbic)
+	return [resf, wbic, aveloglike]

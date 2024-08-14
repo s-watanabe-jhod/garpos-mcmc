@@ -80,7 +80,7 @@ def jacobian(nmppos, shots, spdeg, knots):
 	return slvidx, imp0, jcb0, jcb2
 
 
-def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
+def H_matrix(nu0, nu1, nu2, rho2, H0s):
 	"""
 	Set the smoothness constraint matrix H.
 	
@@ -88,10 +88,8 @@ def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
 	----------
 	nu0, nu1, nu2, rho2 : float
 		hyperparameters in real scale (as defined in obs. eq.).
-	nknot : int
-		Number of parameter for B-spline for each component.
-	H0 : csc_matrix
-		2nd derivative matrix of the B-spline basis.
+	H0s : list of csc_matrix
+		Base-matrices for the smoothness constraint.
 	
 	Returns
 	-------
@@ -99,12 +97,37 @@ def H_matrix(nu0, nu1, nu2, rho2, nknot, H0):
 		Matrix for the smoothness constraint.
 	"""
 	
-	H = lil_matrix( (nknot*3, nknot*3) )
-	H[nknot*0:nknot*1, nknot*0:nknot*1] = H0 / nu0
-	H[nknot*1:nknot*2, nknot*1:nknot*2] = H0 / (nu0*nu1)
-	H[nknot*2:nknot*3, nknot*2:nknot*3] = H0 / (nu0*nu1)
+	H = H0s[0]/nu0 + H0s[1]/(nu0*nu1)
 	
 	return H
+
+
+def H_bases(nknot, H0):
+	"""
+	Set the base-matrices for smoothness constraint matrix H.
+	
+	Parameters
+	----------
+	nknot : int
+		Number of parameter for B-spline for each component.
+	H0 : csc_matrix
+		2nd derivative matrix of the B-spline basis.
+	
+	Returns
+	-------
+	H0s : list of csc_matrix
+		Base-matrices for the smoothness constraint.
+	"""
+	
+	H00 = lil_matrix( (nknot*3, nknot*3) )
+	H01 = lil_matrix( (nknot*3, nknot*3) )
+	H00[nknot*0:nknot*1, nknot*0:nknot*1] = H0
+	H01[nknot*1:nknot*2, nknot*1:nknot*2] = H0
+	H01[nknot*2:nknot*3, nknot*2:nknot*3] = H0
+	H00 = H00.tocsc()
+	H01 = H01.tocsc()
+	
+	return [H00, H01]
 
 
 def H_params(nu0, nu1, nu2, rho2, rankH0):

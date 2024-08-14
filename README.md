@@ -2,25 +2,32 @@
 
 <img src="https://github.com/s-watanabe-jhod/garpos/assets/68180987/ed955d3c-4c3b-4ca3-91d5-f57b876cfa7b" width=400 alt="GARPOS">
 
-"GARPOS-MCMC" (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
+GARPOS-MCMC (GNSS-Acoustic Ranging combined POsitioning Solver with MCMC) is an analysis tool for GNSS-Acoustic seafloor positioning.
 
 ### Version
-Latest version is GARPOS v1.2.0 (Aug. 13. 2024)
+Latest version is GARPOS v2.0.0 (Aug. 14. 2024)
+
+* Version 2 has the function for model selection with WBIC (widely applicable Bayesian Information Criterion).
 
 #### Major change(s)
+* v2.0.0: Implement the model selection scheme with WBIC.
 * v1.2.0: Transformation methods for estimation parameters are changed. The format for configuration file is changed. 
 * v1.1.0: Skip raytrace in each MCMC step with the pre-calculated travel times.
 * v1.0.0: first release
 
 # Citation
 
-### for methodology
+### for methodology (version 2 with WBIC)
+
+Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (in prep.). Model selection for the sound speed perturbation of the GNSS-A using the widely applicable Bayesian Information Criterion (WBIC). preprint will be available soon.
+
+### for methodology (version 1 or only for MCMC)
 
 Watanabe, S., Ishikawa, T., Nakamura, Y., & Yokota, Y. (2023). Full-Bayes GNSS-A solutions for precise seafloor positioning with single uniform sound speed gradient layer assumption. J. Geod. 97, 89. https://doi.org/10.1007/s00190-023-01774-6
 
 ### for code
 
-Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v1.2.0) Zenodo. https://doi.org/10.5281/zenodo.13309209
+Shun-ichi Watanabe, Tadashi Ishikawa, Yuto Nakamura & Yusuke Yokota. (2024). GARPOS-MCMC: MCMC-based analysis tool for GNSS-Acoustic seafloor positioning (v2.0.0) Zenodo. 
 
 ## Corresponding author
 
@@ -40,20 +47,20 @@ Please see the literature in "citation for methodology".
 
 ### Models for perturbation field
 
-For the detail, the users should read the above paper.
+For the detail, the users should read the above papers. This version implements m100/m101/m102 models as candidates.
 
-#### Double-grad (mode=m100)
+#### model m100
 
 Independently esitmate the spatial gradient parameters related to the sea-surface and seafloor instruments' positions. 
 This is the similar condition to the conventional GARPOS (https://github.com/s-watanabe-jhod/garpos).
 
-#### Single-grad (mode=m101)
+#### model m101
 
 Constrain the directions of the spatial gradient parameters related to the sea-surface and seafloor instruments' positions, by estimating a propotinal constant for the seafloor gradient to the sea-surface gradient (between the range [0, 1]).
 
-#### Alpha2-offset (mode=m102)
+#### model m102
 
-In addition to the "single-grad", a constant offset vector for the seafloor gradient is estimated. 
+In addition to the model "m101", a constant offset vector for the seafloor gradient is estimated. 
 
 ### Note
 
@@ -90,21 +97,16 @@ When using GARPOS-MCMC, you should prepare the following files.
 * Reference sound speed data csv file
 * Settings file (e.g., Settings.ini)
 
-"bin/solveSingleEpoch_mcmcv120.py" is a driver code. 
+"bin/solveSingleEpoch_mcmcv200.py" is a driver code. 
 An observation dataset is stored in "sample" directory as demo data.
 
 NOTE: Unlike conventional GARPOS, travel-time outliers must be removed before the MCMC run.
 
-To solve position with array-constraint condition (for epoch TOS2.1803.meiyo_m4),
+To solve position with array-constraint condition (for epoch TOS2.1803.meiyo_m4) for WBIC-preferred model,
 
 ```bash
 cd sample
-# for mode m100
-../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo100/TOS2 --mode m100
-# for mode m101
-../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo101/TOS2 --mode m101
-# for mode m102
-../bin/solveSingleEpoch_mcmcv120.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo102/TOS2 --mode m102
+../bin/solveSingleEpoch_mcmcv200.py -i Settings-mcmc-demo.yml -f cfgfix/TOS2/TOS2.1803.meiyo_m4-fix.ini -d demo/TOS2
 ```
 
 The following files will be created in the directory (specified with "-d" option).
@@ -139,6 +141,7 @@ Please be aware of your memory because it stores all MCMC samples for test.
     + calc_snell (in traveltime_d.py)
     + make_knots (in setup_model.py)
     + derivative2 (in setup_model.py)
+    + H_bases (in func_*.py)
     + jacobian (in func_*.py)
       + calc_gamma (in forward.py)
     + data_var_base (in setup_model.py)
